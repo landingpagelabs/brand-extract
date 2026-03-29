@@ -293,6 +293,8 @@ function extractFontsFromCss(cssText, existingFonts) {
         for (const fam of families) {
           const lower = fam.toLowerCase();
           if (fontNames.has(lower) || systemFonts.has(lower) || !fam) continue;
+          // Skip CSS variable references (not actual font names)
+          if (fam.startsWith('var(')) continue;
           fontNames.add(lower);
           fonts.push({
             name: fam,
