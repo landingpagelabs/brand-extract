@@ -1,0 +1,10 @@
+{
+  "rewrites": [
+    { "source": "/api/extract", "destination": "/api/extract" }
+  ],
+  "functions": {
+    "api/extract.js": {
+      "maxDuration": 20
+    }
+  }
+}

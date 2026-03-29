@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brand Extract — Favicon, Colours &amp; Fonts from Any Website</title>
+  <meta name="description" content="Paste any URL and instantly extract its favicon, brand colours, and fonts. Free tool for designers and marketers.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://brand-extract.vercel.app">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Brand Extract — Favicon, Colours & Fonts from Any Website">
+  <meta property="og:description" content="Paste any URL and instantly extract its favicon, brand colours, and fonts. Free tool for designers and marketers.">
+  <meta property="og:url" content="https://brand-extract.vercel.app">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Brand Extract">
+  <meta name="twitter:description" content="Extract favicons, brand colours, and fonts from any website.">
+
+  <meta name="theme-color" content="#111111">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/style.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Brand Extract",
+    "url": "https://brand-extract.vercel.app",
+    "description": "Extract favicons, brand colours, and fonts from any website.",
+    "applicationCategory": "DesignApplication",
+    "operatingSystem": "Any",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    }
+  }
+  </script>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <h1>Brand Extract</h1>
+      <p class="subtitle">Extract favicons, brand colours, and fonts from any website</p>
+
+      <form id="extract-form" class="search-bar" autocomplete="off">
+        <input
+          type="url"
+          id="url-input"
+          placeholder="Enter a URL (e.g. stripe.com)"
+          autofocus
+          required
+        >
+        <button type="submit" id="extract-btn">
+          <span class="btn-text">Extract</span>
+          <span class="btn-loader" hidden>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+            </svg>
+          </span>
+        </button>
+      </form>
+
+      <p id="error-msg" class="error-msg" hidden></p>
+    </header>
+
+    <div id="results" class="results" hidden>
+
+      <section id="favicons-section" class="section">
+        <div class="section-header">
+          <h2>Favicons</h2>
+          <span class="section-count" id="favicon-count"></span>
+        </div>
+        <div id="favicons-grid" class="favicons-grid"></div>
+      </section>
+
+      <section id="colours-section" class="section">
+        <div class="section-header">
+          <h2>Colours</h2>
+          <span class="section-count" id="colour-count"></span>
+        </div>
+        <div id="colours-grid" class="colours-grid"></div>
+      </section>
+
+      <section id="fonts-section" class="section">
+        <div class="section-header">
+          <h2>Fonts</h2>
+          <span class="section-count" id="font-count"></span>
+        </div>
+        <div id="fonts-list" class="fonts-list"></div>
+      </section>
+
+      <section class="section export-section">
+        <div class="section-header">
+          <h2>Export</h2>
+        </div>
+        <div class="export-buttons">
+          <button id="copy-json" class="export-btn">Copy all as JSON</button>
+          <button id="copy-palette" class="export-btn">Copy colour palette</button>
+          <button id="download-kit" class="export-btn">Download brand kit</button>
+        </div>
+      </section>
+
+      <div class="meta-bar" id="meta-bar">
+        <span id="meta-domain"></span>
+        <span id="meta-time"></span>
+      </div>
+    </div>
+
+    <section class="explainer">
+      <h2>How it works</h2>
+      <p>Brand Extract fetches the HTML and CSS from any public website, then parses it to find favicons, colour values, and font declarations. Colours are extracted from CSS custom properties, inline styles, and linked stylesheets. Fonts are detected from Google Fonts links, @font-face rules, and font-family declarations. Everything runs through a serverless function — nothing is stored.</p>
+      <h3>What you get</h3>
+      <ul>
+        <li><strong>Favicons</strong> at multiple sizes with download and copy URL options</li>
+        <li><strong>Colour palette</strong> with hex, RGB, and HSL values — click to copy</li>
+        <li><strong>Font list</strong> with source detection and live previews</li>
+        <li><strong>One-click export</strong> as JSON, palette, or a self-contained brand kit HTML file</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <p>Built by <a href="https://www.landingpagelabs.co" target="_blank" rel="noopener">Landing Page Labs</a></p>
+  </footer>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
