@@ -18,8 +18,7 @@
 
   <meta name="theme-color" content="#111111">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="icon" type="image/x-icon" href="/favicon.ico">
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="icon" sizes="32x32" href="/favicon.svg">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,7 +51,7 @@
 
       <form id="extract-form" class="search-bar" autocomplete="off">
         <input
-          type="url"
+          type="text"
           id="url-input"
           placeholder="Enter a URL (e.g. stripe.com)"
           autofocus
@@ -69,6 +68,10 @@
       </form>
 
       <p id="error-msg" class="error-msg" hidden></p>
+
+      <div id="progress-bar" class="progress-bar" hidden>
+        <div class="progress-fill"></div>
+      </div>
     </header>
 
     <div id="results" class="results" hidden>

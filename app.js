@@ -7,6 +7,7 @@ const btnLoader = extractBtn.querySelector('.btn-loader');
 const errorMsg = document.getElementById('error-msg');
 const resultsEl = document.getElementById('results');
 const toast = document.getElementById('toast');
+const progressBar = document.getElementById('progress-bar');
 
 // Section containers
 const faviconsGrid = document.getElementById('favicons-grid');
@@ -25,6 +26,14 @@ const downloadKitBtn = document.getElementById('download-kit');
 
 // State
 let lastResult = null;
+let fontLinkEl = null;
+
+// ===== Helpers =====
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
 
 // ===== Toast =====
 let toastTimer = null;
@@ -56,6 +65,34 @@ function setLoading(loading) {
   btnText.hidden = loading;
   btnLoader.hidden = !loading;
   errorMsg.hidden = true;
+  progressBar.hidden = !loading;
+  if (loading) {
+    progressBar.querySelector('.progress-fill').style.width = '0%';
+    startProgressAnimation();
+  }
+}
+
+let progressInterval = null;
+function startProgressAnimation() {
+  let width = 0;
+  clearInterval(progressInterval);
+  const fill = progressBar.querySelector('.progress-fill');
+  progressInterval = setInterval(() => {
+    // Slow down as it approaches 90%
+    if (width < 30) width += 3;
+    else if (width < 60) width += 1.5;
+    else if (width < 85) width += 0.5;
+    else if (width < 90) width += 0.1;
+    fill.style.width = width + '%';
+    if (width >= 90) clearInterval(progressInterval);
+  }, 100);
+}
+
+function stopProgress() {
+  clearInterval(progressInterval);
+  const fill = progressBar.querySelector('.progress-fill');
+  fill.style.width = '100%';
+  setTimeout(() => { progressBar.hidden = true; }, 300);
 }
 
 function showError(msg) {
@@ -85,7 +122,12 @@ async function extract(url) {
     lastResult = data;
     renderResults(data);
     resultsEl.hidden = false;
-    resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    stopProgress();
+
+    // Smooth scroll to results without losing the input
+    setTimeout(() => {
+      resultsEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 100);
   } catch (err) {
     showError('Network error. Check your connection and try again.');
   } finally {
@@ -141,13 +183,21 @@ function renderFavicons(favicons) {
 
     const downloadBtn = document.createElement('button');
     downloadBtn.textContent = 'Download';
-    downloadBtn.addEventListener('click', () => {
-      const a = document.createElement('a');
-      a.href = fav.url;
-      a.download = '';
-      a.target = '_blank';
-      a.rel = 'noopener';
-      a.click();
+    downloadBtn.addEventListener('click', async () => {
+      try {
+        const resp = await fetch(fav.url);
+        const blob = await resp.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        const ext = fav.type !== 'unknown' ? fav.type : 'png';
+        a.download = `favicon.${ext}`;
+        a.click();
+        URL.revokeObjectURL(blobUrl);
+      } catch {
+        // Fallback: open in new tab
+        window.open(fav.url, '_blank');
+      }
     });
 
     const copyUrlBtn = document.createElement('button');
@@ -180,6 +230,7 @@ function renderColours(colors) {
   for (const c of colors) {
     const swatch = document.createElement('div');
     swatch.className = 'colour-swatch';
+    swatch.title = 'Click to copy';
     if (utilityColours.includes(c.hex.toLowerCase())) {
       swatch.classList.add('swatch-dimmed');
     }
@@ -201,7 +252,11 @@ function renderColours(colors) {
 
     const tooltip = document.createElement('div');
     tooltip.className = 'swatch-tooltip';
-    tooltip.innerHTML = `<strong>${c.hex.toUpperCase()}</strong><br>RGB: ${c.rgb}<br>HSL: ${c.hsl}<br>Source: ${c.source}`;
+    const safeHex = escapeHtml(c.hex.toUpperCase());
+    const safeRgb = escapeHtml(c.rgb);
+    const safeHsl = escapeHtml(c.hsl);
+    const safeSource = escapeHtml(c.source);
+    tooltip.innerHTML = `<strong>${safeHex}</strong><br>RGB: ${safeRgb}<br>HSL: ${safeHsl}<br>Source: ${safeSource}`;
 
     info.appendChild(hex);
     info.appendChild(role);
@@ -227,14 +282,20 @@ function renderFonts(fonts) {
 
   fontCount.textContent = `${fonts.length} found`;
 
+  // Clean up previous font link
+  if (fontLinkEl) {
+    fontLinkEl.remove();
+    fontLinkEl = null;
+  }
+
   // Load web fonts for preview
   const webFonts = fonts.filter(f => f.source === 'google-fonts');
   if (webFonts.length) {
     const families = webFonts.map(f => `family=${encodeURIComponent(f.name)}`).join('&');
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = `https://fonts.googleapis.com/css2?${families}&display=swap`;
-    document.head.appendChild(link);
+    fontLinkEl = document.createElement('link');
+    fontLinkEl.rel = 'stylesheet';
+    fontLinkEl.href = `https://fonts.googleapis.com/css2?${families}&display=swap`;
+    document.head.appendChild(fontLinkEl);
   }
 
   for (const font of fonts) {
@@ -257,7 +318,12 @@ function renderFonts(fonts) {
       'system': 'System font',
     };
     if (font.url && font.source === 'google-fonts') {
-      source.innerHTML = `<a href="${font.url}" target="_blank" rel="noopener">${sourceLabels[font.source] || font.source}</a>`;
+      const a = document.createElement('a');
+      a.href = font.url;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.textContent = sourceLabels[font.source] || font.source;
+      source.appendChild(a);
     } else {
       source.textContent = sourceLabels[font.source] || font.source;
     }
@@ -284,10 +350,10 @@ function renderResults(data) {
   metaDomain.textContent = data.domain || '';
   metaTime.textContent = data.fetchTime ? `Extracted in ${(data.fetchTime / 1000).toFixed(1)}s` : '';
 
-  // Show/hide sections
-  document.getElementById('favicons-section').hidden = !(data.favicons && data.favicons.length);
-  document.getElementById('colours-section').hidden = !(data.colors && data.colors.length);
-  document.getElementById('fonts-section').hidden = !(data.fonts && data.fonts.length);
+  // Show all sections (render functions handle empty state messaging)
+  document.getElementById('favicons-section').hidden = false;
+  document.getElementById('colours-section').hidden = false;
+  document.getElementById('fonts-section').hidden = false;
 }
 
 // ===== Export Functions =====
@@ -317,24 +383,26 @@ downloadKitBtn.addEventListener('click', () => {
 });
 
 function generateBrandKitHtml(data) {
+  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
   const faviconRows = (data.favicons || []).map(f =>
     `<div style="display:inline-block;margin:8px;text-align:center">
-      <img src="${f.url}" style="width:48px;height:48px;object-fit:contain" onerror="this.style.display='none'"><br>
-      <small>${f.type.toUpperCase()}${f.sizes ? ' ' + f.sizes : ''}</small>
+      <img src="${esc(f.url)}" style="width:48px;height:48px;object-fit:contain" onerror="this.style.display='none'"><br>
+      <small>${esc(f.type.toUpperCase())}${f.sizes ? ' ' + esc(f.sizes) : ''}</small>
     </div>`
   ).join('');
 
   const colourRows = (data.colors || []).map(c =>
     `<div style="display:inline-block;margin:6px;text-align:center">
-      <div style="width:72px;height:72px;background:${c.hex};border-radius:6px;border:1px solid rgba(0,0,0,0.1)"></div>
-      <div style="font-size:12px;font-weight:600;margin-top:4px">${c.hex.toUpperCase()}</div>
-      <div style="font-size:11px;color:#888">${c.role}</div>
+      <div style="width:72px;height:72px;background:${esc(c.hex)};border-radius:6px;border:1px solid rgba(0,0,0,0.1)"></div>
+      <div style="font-size:12px;font-weight:600;margin-top:4px">${esc(c.hex.toUpperCase())}</div>
+      <div style="font-size:11px;color:#888">${esc(c.role)}</div>
     </div>`
   ).join('');
 
   const fontRows = (data.fonts || []).map(f =>
     `<div style="margin:8px 0;padding:12px;border:1px solid #eee;border-radius:6px">
-      <strong>${f.name}</strong> <span style="color:#888;font-size:13px">${f.source}</span>
+      <strong>${esc(f.name)}</strong> <span style="color:#888;font-size:13px">${esc(f.source)}</span>
     </div>`
   ).join('');
 
@@ -343,13 +411,13 @@ function generateBrandKitHtml(data) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Brand Kit — ${data.domain || 'Export'}</title>
+<title>Brand Kit — ${esc(data.domain || 'Export')}</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>body{font-family:'Inter',sans-serif;max-width:700px;margin:40px auto;padding:0 20px;color:#111}h1{font-size:1.5rem;margin-bottom:4px}h2{font-size:1rem;margin-top:32px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #eee}.domain{color:#888;font-size:0.9rem;margin-bottom:32px}</style>
 </head>
 <body>
 <h1>Brand Kit</h1>
-<p class="domain">${data.domain || ''}</p>
+<p class="domain">${esc(data.domain || '')}</p>
 ${faviconRows ? `<h2>Favicons</h2><div>${faviconRows}</div>` : ''}
 ${colourRows ? `<h2>Colours</h2><div>${colourRows}</div>` : ''}
 ${fontRows ? `<h2>Fonts</h2><div>${fontRows}</div>` : ''}
